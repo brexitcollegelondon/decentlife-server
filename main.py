@@ -16,6 +16,10 @@ def hello():
 def get_all_challenges():
     return json.dumps(db.all())
 
+@app.route("/challenges/<challenge_id>")
+def get_challenge(challenge_id):
+    return json.dumps(db.search(q.challenge_id == challenge_id)[0])
+
 
 @app.route("/challenge", methods=['POST'])
 def add_challenge():
@@ -24,4 +28,14 @@ def add_challenge():
         new_challenge['creator_id']: new_challenge['is_bystander']
     }]
     db.upsert(new_challenge, q.challenge_id == new_challenge['challenge_id'])
+    return "ok"
+
+@app.route("/join_challenge", methods=['POST'])
+def join_challenge():
+    join_data = request.json #challenge_id, user_id, is_bystander
+    challenge = db.search(q.challenge_id == join_data["challenge_id"])[0]
+    participants_list = challenge['participants_list']
+    participants_list.append({join_data["user_id"]: join_data["is_bystander"]})
+    challenge["participants_list"] = participants_list
+    db.upsert(challenge, q.challenge_id == challenge["challenge_id"])
     return "ok"
