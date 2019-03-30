@@ -5,6 +5,7 @@ from flask import Flask, request
 app = Flask(__name__)
 db: TinyDB = TinyDB('challenges.json')
 q: Query = Query()
+db.purge()
 
 
 @app.route("/")
@@ -24,9 +25,13 @@ def get_challenge(challenge_id):
 @app.route("/challenge", methods=['POST'])
 def add_challenge():
     new_challenge = request.json
-    new_challenge['participants_list'] = [{
-        new_challenge['creator_id']: new_challenge['is_bystander']
-    }]
+    if not new_challenge['creator_bystander']:
+        new_challenge['participants'] = [new_challenge['creator_id']]
+        new_challenge['bystanders'] = []
+    else:
+        new_challenge['bystanders'] = [new_challenge['creator_id']]
+        new_challenge['participants'] = []
+
     db.upsert(new_challenge, q.challenge_id == new_challenge['challenge_id'])
     return "ok"
 
@@ -34,13 +39,14 @@ def add_challenge():
 def join_challenge():
     join_data = request.json #challenge_id, user_id, is_bystander
     challenge = db.search(q.challenge_id == join_data["challenge_id"])[0]
-    participants_list = challenge['participants_list']
-    unique = True
-    for dict in participants_list:
-        if join_data["user_id"] in dict:
-            unique = False
-    if unique:
-        participants_list.append({join_data["user_id"]: join_data["is_bystander"]})
-    challenge["participants_list"] = participants_list
+    if not join_data['is_bystander']:
+        participants = challenge['participants']
+        participants.append(join_data["user_id"])
+        challenge["participants"] = list(set(participants))
+    else:
+        bystanders = challenge['bystanders']
+        bystanders.append(join_data["user_id"])
+        challenge["bystanders"] = list(set(bystanders))
+
     db.upsert(challenge, q.challenge_id == challenge["challenge_id"])
     return "ok"
