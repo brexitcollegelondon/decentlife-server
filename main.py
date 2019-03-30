@@ -35,7 +35,12 @@ def join_challenge():
     join_data = request.json #challenge_id, user_id, is_bystander
     challenge = db.search(q.challenge_id == join_data["challenge_id"])[0]
     participants_list = challenge['participants_list']
-    participants_list.append({join_data["user_id"]: join_data["is_bystander"]})
+    unique = True
+    for dict in participants_list:
+        if join_data["user_id"] in dict:
+            unique = False
+    if unique:
+        participants_list.append({join_data["user_id"]: join_data["is_bystander"]})
     challenge["participants_list"] = participants_list
     db.upsert(challenge, q.challenge_id == challenge["challenge_id"])
     return "ok"
