@@ -4,8 +4,10 @@ from tinydb import TinyDB, Query
 from flask import Flask, request
 app = Flask(__name__)
 db: TinyDB = TinyDB('challenges.json')
+user_db: TinyDB = TinyDB('users.json')
 q: Query = Query()
-db.purge()
+# db.purge()
+# user_db.purge()
 
 
 @app.route("/")
@@ -50,3 +52,12 @@ def join_challenge():
 
     db.upsert(challenge, q.challenge_id == challenge["challenge_id"])
     return "ok"
+@app.route("/add_user", methods=['POST'])
+def add_user():
+    new_user = request.json
+    user_db.upsert(new_user, q.user_id == new_user['user_id'])
+    return "ok"
+
+@app.route("/users/<user_id>")
+def get_user(user_id):
+    return json.dumps(user_db.search(q.user_id == user_id)[0])
