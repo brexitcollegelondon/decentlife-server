@@ -1,13 +1,12 @@
 import json
 from tinydb import TinyDB, Query
-
+from flask_cors import CORS
 from flask import Flask, request
 app = Flask(__name__)
+CORS(app)
 db: TinyDB = TinyDB('challenges.json')
 user_db: TinyDB = TinyDB('users.json')
 q: Query = Query()
-# db.purge()
-# user_db.purge()
 
 
 @app.route("/")
