@@ -20,5 +20,8 @@ def get_all_challenges():
 @app.route("/challenge", methods=['POST'])
 def add_challenge():
     new_challenge = request.json
+    new_challenge['participants_list'] = [{
+        new_challenge['creator_id']: new_challenge['is_bystander']
+    }]
     db.upsert(new_challenge, q.challenge_id == new_challenge['challenge_id'])
     return "ok"
