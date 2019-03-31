@@ -85,13 +85,25 @@ def add_user():
 def get_user(user_id):
     return json.dumps(user_db.search(q.user_id == user_id)[0])
 
+
 @app.route("/users/<user_id>/update", methods=['POST'])
 def update_data(user_id):
     user = user_db.search(q.user_id == user_id)[0]
     health_data = request.json
     for parameter in health_data:
         user[parameter] = health_data[parameter]
-    return json.dumps(user)
+    fb_data = {
+    "sleep": user["sleep"],
+    "steps": user["steps"],
+    "exercise": user["exercise"]
+    }
+
+    r = requests.post("http://dcore.decentlife.xyz/sendMessage", json={
+    "sender": id_to_payment[user_id],
+    "recipient": id_to_payment["proxy"],
+    "message": json.dumps(fb_data)
+    })
+    return r.text
 
 @app.route("/challenges/<challenge_id>/end")
 def end_challenge(challenge_id):
@@ -124,6 +136,7 @@ def end_challenge(challenge_id):
             user = user_db.search(q.user_id == w)[0]
             user["current_balance"] += reward
         print(r.text)
+    db.purge()
     return json.dumps(challenge['participants']) + " won " + str(reward) + " DCT"
 
 @app.route("/users/transfer", methods=['POST'])
