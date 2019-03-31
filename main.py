@@ -36,27 +36,33 @@ def add_challenge():
     if not new_challenge['creator_bystander']:
         new_challenge['participants'] = [new_challenge['creator_id']]
         new_challenge['bystanders'] = []
-        r = requests.post('http://35.184.146.25/transfer', json = {
+        r = requests.post('http://dcore.decentlife.xyz/transfer', json = {
         "payer": id_to_payment[new_challenge["creator_id"]],
         "payee": id_to_payment["proxy"],
         "amount": new_challenge["pledge_amount"]
         })
+        if r.text == "all good":
+            creator = user_db.search(q.user_id == new_challenge['creator_id'])[0]
+            creator["current_balance"] -= new_challenge["pledge_amount"]
     else:
         new_challenge['bystanders'] = [new_challenge['creator_id']]
         new_challenge['participants'] = []
 
     db.upsert(new_challenge, q.challenge_id == new_challenge['challenge_id'])
-    return "ok"
+    return r.text
 
 @app.route("/join_challenge", methods=['POST'])
 def join_challenge():
     join_data = request.json #challenge_id, user_id, is_bystander
     challenge = db.search(q.challenge_id == join_data["challenge_id"])[0]
-    r = requests.post('http://35.184.146.25/transfer', json = {
+    r = requests.post('http://dcore.decentlife.xyz/transfer', json = {
     "payer": id_to_payment[join_data["user_id"]],
     "payee": id_to_payment["proxy"],
     "amount": challenge["pledge_amount"]
     })
+    if r.text == "all good":
+        user = user_db.search(q.user_id == join_data['user_id'])[0]
+        user["current_balance"] -= challenge["pledge_amount"]
     if not join_data['is_bystander']:
         participants = challenge['participants']
         participants.append(join_data["user_id"])
@@ -66,8 +72,8 @@ def join_challenge():
         bystanders.append(join_data["user_id"])
         challenge["bystanders"] = list(set(bystanders))
     db.upsert(challenge, q.challenge_id == challenge["challenge_id"])
-    return "ok"
-    # return r.text
+    # return "ok"
+    return r.text
 
 @app.route("/add_user", methods=['POST'])
 def add_user():
@@ -109,11 +115,14 @@ def end_challenge(challenge_id):
         reward = challenge["pledge_amount"]
         return "Everybody lost, initial pledges of " + str(reward) + " DCT are returned."
     for w in winners:
-        r = requests.post('http://35.184.146.25/transfer', json = {
+        r = requests.post('http://dcore.decentlife.xyz/transfer', json = {
         "payer": id_to_payment["proxy"],
         "payee": id_to_payment[w],
         "amount": reward
         })
+        if r.text == "all good":
+            user = user_db.search(q.user_id == w)[0]
+            user["current_balance"] += reward
         print(r.text)
     return json.dumps(challenge['participants']) + " won " + str(reward) + " DCT"
 
@@ -123,7 +132,7 @@ def transfer():
     payee = data['payee']
     payer = data['payer']
     amount = data['amount']
-    r = requests.post('http://35.184.146.25/transfer', json = {
+    r = requests.post('http://dcore.decentlife.xyz/transfer', json = {
     "payer": id_to_payment[payer],
     "payee": id_to_payment[payee],
     "amount": amount
