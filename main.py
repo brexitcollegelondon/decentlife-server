@@ -1,4 +1,5 @@
 import json
+import requests
 from tinydb import TinyDB, Query
 from flask_cors import CORS
 from flask import Flask, request
@@ -60,3 +61,30 @@ def add_user():
 @app.route("/users/<user_id>")
 def get_user(user_id):
     return json.dumps(user_db.search(q.user_id == user_id)[0])
+
+@app.route("/users/<user_id>/update", methods=['POST'])
+def update_data(user_id):
+    user = user_db.search(q.user_id == user_id)[0]
+    health_data = request.json
+    for parameter in health_data:
+        user[parameter] = health_data[parameter]
+    return json.dumps(user)
+
+@app.route("/challenges/<challenge_id>/end")
+def end_challenge(challenge_id):
+    challenge = db.search(q.challenge_id == challenge_id)[0]
+    challenge_type = challenge["challenge_type"]
+    users = challenge["participants"]
+    for user_id in users:
+        user = user_db.search(q.user_id == user_id)[0]
+        print(user)
+        user_quantity = user[challenge_type]
+        if user_quantity < challenge["target_quantity"]:
+            participants = challenge['participants']
+            losers       = []
+            participants.remove(user_id)
+            losers.append(user_id)
+            challenge['losers']       = losers
+            challenge['participants'] = participants
+    winners = participants
+    return json.dumps(challenge['participants'])
