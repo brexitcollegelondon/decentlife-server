@@ -9,6 +9,12 @@ db: TinyDB = TinyDB('challenges.json')
 user_db: TinyDB = TinyDB('users.json')
 q: Query = Query()
 
+id_to_payment = {
+"gerald": "decentlife-gerald",
+"tiger": "decentlife-tiger",
+"proxy": "decentlife-test100"
+}
+
 
 @app.route("/")
 def hello():
@@ -40,6 +46,13 @@ def add_challenge():
 @app.route("/join_challenge", methods=['POST'])
 def join_challenge():
     join_data = request.json #challenge_id, user_id, is_bystander
+
+    # r = requests.post('https://PLACEHOLDER/transfer', data = {
+    # "payer": id_to_payment[join_data["user_id"]], #use correct syntax when server set up
+    # "payee": id_to_payment["proxy"],
+    # "amount": challenge["pledge_amount"]
+    # })
+
     challenge = db.search(q.challenge_id == join_data["challenge_id"])[0]
     if not join_data['is_bystander']:
         participants = challenge['participants']
@@ -49,7 +62,6 @@ def join_challenge():
         bystanders = challenge['bystanders']
         bystanders.append(join_data["user_id"])
         challenge["bystanders"] = list(set(bystanders))
-
     db.upsert(challenge, q.challenge_id == challenge["challenge_id"])
     return "ok"
 @app.route("/add_user", methods=['POST'])
@@ -77,7 +89,6 @@ def end_challenge(challenge_id):
     users = challenge["participants"]
     for user_id in users:
         user = user_db.search(q.user_id == user_id)[0]
-        print(user)
         user_quantity = user[challenge_type]
         losers = []
         if user_quantity < challenge["target_quantity"]:
@@ -94,8 +105,8 @@ def end_challenge(challenge_id):
         return "Everybody lost, initial pledges of " + str(reward) + " DCT are returned."
     # for w in winners:
     #     r = requests.post('https://PLACEHOLDER/transfer', data = {
-    #     "payer": "PROXY ACCOUNT",
-    #     "payee": w,
+    #     "payer": id_to_payment["proxy"],
+    #     "payee": id_to_payment[w],
     #     "amount": reward
     #     })
     return json.dumps(challenge['participants']) + " won " + str(reward) + " DCT"
