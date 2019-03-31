@@ -8,7 +8,7 @@ CORS(app)
 db: TinyDB = TinyDB('challenges.json')
 user_db: TinyDB = TinyDB('users.json')
 q: Query = Query()
-# db.purge()
+db.purge()
 id_to_payment = {
 "gerald": "decentlife-gerald",
 "tiger": "decentlife-tiger",
@@ -36,6 +36,11 @@ def add_challenge():
     if not new_challenge['creator_bystander']:
         new_challenge['participants'] = [new_challenge['creator_id']]
         new_challenge['bystanders'] = []
+        r = requests.post('http://35.184.146.25/transfer', json = {
+        "payer": id_to_payment[new_challenge["creator_id"]],
+        "payee": id_to_payment["proxy"],
+        "amount": new_challenge["pledge_amount"]
+        })
     else:
         new_challenge['bystanders'] = [new_challenge['creator_id']]
         new_challenge['participants'] = []
@@ -111,3 +116,16 @@ def end_challenge(challenge_id):
         })
         print(r.text)
     return json.dumps(challenge['participants']) + " won " + str(reward) + " DCT"
+
+@app.route("/users/transfer", methods=['POST'])
+def transfer():
+    data = request.json #payee, payer, amount
+    payee = data['payee']
+    payer = data['payer']
+    amount = data['amount']
+    r = requests.post('http://35.184.146.25/transfer', json = {
+    "payer": id_to_payment[payer],
+    "payee": id_to_payment[payee],
+    "amount": amount
+    })
+    return r.text
