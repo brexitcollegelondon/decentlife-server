@@ -79,12 +79,23 @@ def end_challenge(challenge_id):
         user = user_db.search(q.user_id == user_id)[0]
         print(user)
         user_quantity = user[challenge_type]
+        losers = []
         if user_quantity < challenge["target_quantity"]:
             participants = challenge['participants']
-            losers       = []
             participants.remove(user_id)
             losers.append(user_id)
             challenge['losers']       = losers
             challenge['participants'] = participants
-    winners = participants
-    return json.dumps(challenge['participants'])
+    winners = challenge['participants']
+    if len(winners)>0:
+        reward = challenge["pledge_amount"]*(len(winners) + len(losers))*1/(len(winners))
+    else:
+        reward = challenge["pledge_amount"]
+        return "Everybody lost, initial pledges of " + str(reward) + " DCT are returned."
+    # for w in winners:
+    #     r = requests.post('https://PLACEHOLDER/transfer', data = {
+    #     "payer": "PROXY ACCOUNT",
+    #     "payee": w,
+    #     "amount": reward
+    #     })
+    return json.dumps(challenge['participants']) + " won " + str(reward) + " DCT"
